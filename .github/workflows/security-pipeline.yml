@@ -1,0 +1,94 @@
+name: Security Scanning Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC for continuous monitoring
+    - cron: '0 2 * * *'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install security scanning tools
+        run: |
+          pip install bandit safety pip-audit
+          
+      - name: Run Bandit SAST scan
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+          bandit -r . -f txt
+        continue-on-error: true
+        
+      - name: Run Safety vulnerability check
+        run: |
+          safety check --json > safety-report.json || true
+          safety check
+        continue-on-error: true
+        
+      - name: Run pip-audit for dependency vulnerabilities
+        run: |
+          pip-audit --desc --format json > pip-audit-report.json || true
+          pip-audit --desc
+        continue-on-error: true
+        
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-scan-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            pip-audit-report.json
+            
+      - name: Security scan summary
+        if: always()
+        run: |
+          echo "### Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Bandit SAST scan completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Safety dependency scan completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Pip-audit vulnerability scan completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 Detailed reports available in artifacts" >> $GITHUB_STEP_SUMMARY
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: moderate
+          
+  secret-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
