@@ -1,254 +1,378 @@
-# CI/CD Security Scanning Pipeline Demo
+# ReconBot - Automated Reconnaissance & Vulnerability Discovery
 
+**Version:** 2.0  
 **Author:** Paul Holder, CC  
-**Purpose:** Demonstrating automated security integration in modern DevOps workflows  
-**Technologies:** GitHub Actions, Python SAST tools, Dependency scanning
+**License:** Dual License - Open Source (Personal/Educational) / Commercial License Available
+
+[![Security](https://img.shields.io/badge/security-tested-brightgreen.svg)](https://github.com/paulwfholder/reconbot)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-Dual-orange.svg)](#-licensing)
 
 ---
 
-## 🎯 Project Overview
+## 🎯 What is ReconBot?
 
-This repository demonstrates practical implementation of **Security as Code** by integrating automated security scanning directly into the CI/CD pipeline. Every code push triggers comprehensive security analysis, catching vulnerabilities before they reach production.
+**ReconBot** is a modular Python/Bash reconnaissance automation framework that reduces manual security assessment time by **60-80%** through intelligent subdomain enumeration, service detection, and vulnerability scanning workflows.
 
-### Why This Matters
+### Key Features
 
-Modern application security requires **shifting left**—finding security issues during development rather than after deployment. This pipeline automates three critical security checks:
-
-1. **Static Application Security Testing (SAST)** - Identifies code-level vulnerabilities
-2. **Dependency Vulnerability Scanning** - Detects known CVEs in third-party libraries  
-3. **Secret Detection** - Prevents credential leaks and API key exposure
-
----
-
-## 🔧 Technical Implementation
-
-### Pipeline Architecture
-
-```
-Code Push → GitHub Actions Trigger → Parallel Security Scans → Report Generation → Artifact Storage
-```
-
-### Security Tools Integrated
-
-| Tool | Purpose | Industry Usage |
-|------|---------|----------------|
-| **Bandit** | Python SAST scanner detecting security issues in code | Used by Netflix, Uber, Lyft |
-| **Safety** | Checks Python dependencies against vulnerability databases | 50K+ GitHub projects |
-| **pip-audit** | PyPA-recommended tool for identifying insecure packages | Official Python ecosystem tool |
-| **TruffleHog** | High-entropy secret detection preventing credential leaks | 10K+ stars, used by enterprises |
-| **Dependency Review** | GitHub native tool analyzing dependency changes | Built-in GitHub security feature |
+- 🔍 **Automated Subdomain Discovery** - Integrates multiple OSINT sources (crt.sh, Subfinder, Amass)
+- 🌐 **Active Service Enumeration** - Port scanning, technology detection, HTTP header analysis  
+- 🛡️ **Vulnerability Assessment** - Integration with Nuclei, Nmap NSE scripts, custom templates
+- 📊 **Structured Reporting** - Markdown, JSON, and PDF output formats
+- 🔧 **Modular Architecture** - Easy to extend with custom reconnaissance modules
+- ⚡ **Performance Optimized** - Concurrent scanning with rate limiting to avoid detection
 
 ---
 
-## 📋 What This Pipeline Does
-
-### On Every Push/Pull Request:
-
-1. **Code Quality Scan**
-   - Runs Bandit against entire codebase
-   - Identifies SQL injection risks, hardcoded secrets, insecure functions
-   - Generates JSON report for parsing and tracking
-
-2. **Dependency Vulnerability Check**  
-   - Scans `requirements.txt` or `pyproject.toml` for known CVEs
-   - Cross-references against Safety DB and OSV database
-   - Reports severity levels (CRITICAL, HIGH, MEDIUM, LOW)
-
-3. **Secret Scanning**
-   - Uses entropy analysis to detect high-randomness strings (API keys, tokens)
-   - Scans commit history for accidentally committed credentials
-   - Prevents secrets from reaching repository
-
-4. **Automated Reporting**
-   - Uploads all scan results as workflow artifacts
-   - Generates summary in GitHub Actions UI
-   - Provides actionable remediation guidance
-
-### Daily Scheduled Scan:
-
-- Runs at 2 AM UTC even without code changes
-- Catches **zero-day vulnerabilities** in dependencies
-- Ensures continuous monitoring of security posture
-
----
-
-## 🚀 Setup Instructions
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- GitHub repository (public or private)
-- Python project with dependencies listed in `requirements.txt`
+```bash
+# System requirements
+- Python 3.8+
+- Bash 4.0+
+- 4GB RAM minimum
+- Linux/macOS (WSL2 for Windows)
+
+# External tools (auto-installed via setup script)
+- subfinder
+- nuclei  
+- nmap
+- jq
+```
 
 ### Installation
 
-1. **Create workflow directory:**
-   ```bash
-   mkdir -p .github/workflows
-   ```
+```bash
+# Clone repository
+git clone https://github.com/paulwfholder/reconbot.git
+cd reconbot
 
-2. **Add the workflow file:**
-   - Copy `security-pipeline.yml` to `.github/workflows/`
-   - Commit and push to trigger first scan
+# Run automated setup
+chmod +x setup.sh
+./setup.sh
 
-3. **Configure repository permissions:**
-   - Go to: Settings → Actions → General
-   - Enable: "Read and write permissions" for GITHUB_TOKEN
+# Verify installation
+./reconbot.sh --version
+```
 
-4. **View results:**
-   - Navigate to: Actions tab → Latest workflow run
-   - Download artifacts for detailed JSON reports
+### Basic Usage
+
+```bash
+# Single domain reconnaissance
+./reconbot.sh -d example.com
+
+# Full scan with vulnerability testing
+./reconbot.sh -d example.com --full --output report.md
+
+# Quiet mode with JSON output
+./reconbot.sh -d example.com -q --json
+```
 
 ---
 
-## 📊 Understanding the Results
+## 📋 Use Cases
 
-### Bandit Output Example:
+### 1. Bug Bounty Hunting
+- **Rapid asset discovery** across large attack surfaces
+- **Subdomain takeover detection** for quick wins
+- **Technology stack fingerprinting** to identify targets
+
+### 2. Security Assessments
+- **Client onboarding reconnaissance** for penetration tests
+- **Attack surface mapping** for risk assessments  
+- **Compliance validation** for external exposure audits
+
+### 3. Continuous Security Monitoring
+- **Daily subdomain monitoring** to detect shadow IT
+- **Certificate transparency log tracking** for new assets
+- **Automated vulnerability baseline** for change detection
+
+### 4. Red Team Operations
+- **Initial reconnaissance phase** automation
+- **Target profiling** for social engineering
+- **Infrastructure enumeration** for attack planning
+
+---
+
+## 🏗️ Architecture
+
+### Modular Design
 
 ```
-Issue: [B105:hardcoded_password_string] Possible hardcoded password
-Severity: Medium   Confidence: Medium
-Location: app.py:45
-Code: password = "admin123"
+ReconBot
+├── modules/
+│   ├── subdomain_enum.py      # Passive subdomain discovery
+│   ├── port_scanner.py         # Active service detection
+│   ├── vuln_scanner.py         # Vulnerability assessment
+│   ├── screenshot.py           # Visual reconnaissance
+│   └── report_generator.py    # Output formatting
+├── config/
+│   ├── nuclei_templates/       # Custom vulnerability templates
+│   ├── wordlists/              # Enumeration wordlists
+│   └── settings.yaml           # Configuration management
+├── utils/
+│   ├── rate_limiter.py         # Anti-detection measures
+│   ├── logger.py               # Audit trail generation
+│   └── validators.py           # Input sanitization
+└── reconbot.sh                 # Main orchestration script
 ```
 
-**Remediation:** Use environment variables or secret management service
+### Workflow
 
-### Safety Output Example:
-
+```mermaid
+graph LR
+    A[Target Domain] --> B[Subdomain Discovery]
+    B --> C[DNS Resolution]
+    C --> D[Port Scanning]
+    D --> E[Service Detection]
+    E --> F[Vulnerability Scanning]
+    F --> G[Report Generation]
+    G --> H[Markdown/JSON/PDF Output]
 ```
-╒══════════════════════════════════════════════════════════════════════════════╕
-│                                                                              │
-│                               /$$$$$$            /$$                         │
-│                              /$$__  $$          | $$                         │
-│           /$$$$$$$  /$$$$$$ | $$  \__//$$$$$$  /$$$$$$   /$$   /$$          │
-│          /$$_____/ |____  $$| $$$$   /$$__  $$|_  $$_/  | $$  | $$          │
-│         |  $$$$$$   /$$$$$$$| $$_/  | $$$$$$$$  | $$    | $$  | $$          │
-│          \____  $$ /$$__  $$| $$    | $$_____/  | $$ /$$| $$  | $$          │
-│          /$$$$$$$/|  $$$$$$$| $$    |  $$$$$$$  |  $$$$/|  $$$$$$$          │
-│         |_______/  \_______/|__/     \_______/   \___/   \____  $$          │
-│                                                            /$$  | $$          │
-│                                                           |  $$$$$$/          │
-│  by pyup.io                                                \______/           │
-│                                                                              │
-╘══════════════════════════════════════════════════════════════════════════════╛
 
- REPORT 
+---
 
-  Safety is using PyUp's free open-source vulnerability database.
+## 🔧 Configuration
 
-  Timestamp: 2025-10-14 08:00:00
+### Basic Configuration (`config/settings.yaml`)
+
+```yaml
+reconnaissance:
+  timeout: 300              # Seconds per scan phase
+  threads: 10              # Concurrent operations
+  rate_limit: 50           # Requests per second
   
-  -> requests version 2.25.0 has known security vulnerability:
-     CVE-2023-32681 - Unintended leak of Proxy-Authorization header
-     CVSS: 6.1 (MEDIUM)
-     Affected: <2.31.0
-     Fix: Upgrade to requests>=2.31.0
+subdomain_discovery:
+  sources:
+    - crt.sh
+    - subfinder  
+    - amass
+  max_depth: 3             # Recursive subdomain levels
+  
+vulnerability_scanning:
+  enabled: true
+  severity_threshold: medium  # low/medium/high/critical
+  custom_templates: true
+  
+reporting:
+  format: markdown         # markdown/json/pdf
+  include_screenshots: true
+  redact_sensitive: true
+```
+
+### Advanced Features
+
+- **Custom Nuclei Templates** - Add organization-specific vulnerability checks
+- **Webhook Integration** - Slack/Discord notifications for findings
+- **S3 Export** - Automatic report upload to cloud storage
+- **JIRA Integration** - Create tickets for discovered vulnerabilities
+
+---
+
+## 📊 Sample Output
+
+### Terminal Output
+
+```
+[*] Starting reconnaissance on example.com
+[+] Subdomain Discovery: 47 subdomains found
+[+] DNS Resolution: 42 active hosts
+[+] Port Scanning: 127 open ports identified
+[+] Service Detection: 
+    - 23 HTTP/HTTPS services
+    - 8 SSH servers  
+    - 3 MySQL databases
+    - 2 SMTP servers
+[!] Vulnerability Scan Results:
+    - CRITICAL: 2 findings
+    - HIGH: 7 findings  
+    - MEDIUM: 15 findings
+    - LOW: 23 findings
+[*] Report generated: example_com_2025-10-14.md
+```
+
+### Markdown Report Structure
+
+```markdown
+# Reconnaissance Report - example.com
+Generated: 2025-10-14 08:30:00 UTC
+
+## Executive Summary
+- 47 subdomains discovered
+- 127 open ports identified  
+- 47 total vulnerabilities found
+- 2 CRITICAL severity issues require immediate attention
+
+## Subdomain Enumeration
+| Subdomain | IP Address | Status | Technologies |
+|-----------|------------|--------|--------------|
+| api.example.com | 192.168.1.10 | Active | Nginx, Node.js |
+| admin.example.com | 192.168.1.11 | Active | Apache, PHP 7.4 |
+
+## Vulnerability Findings
+
+### CRITICAL - SQL Injection in Login Form
+**Subdomain:** api.example.com/login  
+**Severity:** CRITICAL  
+**CVSS:** 9.8  
+**Description:** Authentication bypass via SQL injection...
+**Remediation:** Implement parameterized queries...
 ```
 
 ---
 
-## 🛡️ Security Best Practices Demonstrated
+## 🛡️ Security & Ethical Use
 
-### 1. **Defense in Depth**
-Multiple scanning tools provide overlapping coverage—if one tool misses a vulnerability, another may catch it.
+### Responsible Disclosure
 
-### 2. **Fail-Safe Design**  
-Pipeline uses `continue-on-error: true` to ensure scans complete even if issues are found, providing full visibility rather than blocking deployments prematurely.
+ReconBot is designed for **authorized security testing only**. Users must:
 
-### 3. **Continuous Monitoring**
-Daily scheduled scans catch newly disclosed vulnerabilities in dependencies between code changes.
+- ✅ Obtain written permission before scanning any domain
+- ✅ Comply with bug bounty program rules and scope
+- ✅ Follow responsible disclosure timelines for findings
+- ❌ Never use for unauthorized access or malicious purposes
+- ❌ Never scan government or military systems without authorization
 
-### 4. **Artifact Preservation**
-JSON reports stored as artifacts enable:
-- Historical tracking of security posture
-- Integration with SIEM/SOAR platforms
-- Compliance audit trails
+### Built-in Safeguards
 
-### 5. **Developer-Friendly Output**
-Plain text summaries in workflow UI make results accessible to non-security team members.
-
----
-
-## 🎓 Learning Outcomes
-
-This project demonstrates proficiency in:
-
-- ✅ **DevSecOps Principles** - Integrating security into development workflows
-- ✅ **CI/CD Pipeline Design** - GitHub Actions YAML configuration  
-- ✅ **SAST Tool Implementation** - Bandit, Safety, pip-audit practical usage
-- ✅ **Vulnerability Management** - CVE identification and tracking
-- ✅ **Secret Management** - Preventing credential exposure
-- ✅ **Automation Architecture** - Event-driven and scheduled scanning
-- ✅ **Security Reporting** - Artifact generation and result interpretation
+- **Rate limiting** to avoid DoS conditions
+- **Scope validation** to prevent accidental out-of-scope scanning  
+- **Audit logging** for accountability and compliance
+- **Redaction** of sensitive data in reports
 
 ---
 
-## 🔄 Integration with Larger Security Programs
+## 💼 Licensing
 
-This pipeline serves as a **foundational layer** for comprehensive Application Security:
+### Dual License Concept
 
-### Next Steps for Production Use:
+ReconBot can be made available under a dual license model:
 
-1. **DAST Integration**  
-   - Add OWASP ZAP or Burp Suite for runtime testing
-   - Scan deployed applications for vulnerabilities missed by SAST
+#### Open Source License (Personal/Educational Use)
 
-2. **Container Security**
-   - Integrate Trivy or Grype for Docker image scanning
-   - Check for vulnerabilities in base images and OS packages
+**Free for:**
+- Individual security researchers
+- Educational institutions and students  
+- Open source project security testing
+- Personal skill development
 
-3. **Infrastructure as Code Security**
-   - Add Checkov or tfsec for Terraform/CloudFormation scanning
-   - Prevent misconfigured cloud resources
+**Restrictions:**
+- No commercial use without license
+- Attribution required
 
-4. **Security Gates**
-   - Configure severity thresholds that block deployments
-   - Require security team approval for high-severity findings
+#### Commercial License (When Available)
 
-5. **SIEM Integration**
-   - Forward scan results to Splunk, Elastic, or AWS Security Hub
-   - Correlate with runtime security events
+**For organizations requiring:**
+- Commercial security consulting use
+- Integration into commercial products
+- Corporate security team usage
+
+**Contact:** paulwfholder@gmail.com for commercial licensing inquiries.
+
+**Note:** Commercial licensing structure is under development. Pricing will be determined based on organizational needs and scale.
 
 ---
 
-## 📈 Metrics & Continuous Improvement
+## 🤝 Commercial Inquiries
 
-Track these KPIs to demonstrate security program maturity:
+Interested in commercial licensing for your organization?
 
-- **Mean Time to Remediation (MTTR)** - Days from vulnerability detection to fix
-- **Vulnerability Escape Rate** - Issues found in production vs pre-production  
-- **Scan Coverage** - Percentage of repositories with automated scanning
-- **False Positive Rate** - Invalid findings requiring tool tuning
+**Contact:** paulwfholder@gmail.com  
+**Subject Line:** "ReconBot Commercial License Inquiry"
+
+Include in your inquiry:
+- Organization name and size
+- Intended use case
+- Estimated scanning volume
+- Any specific requirements
+
+Commercial licensing structure is flexible and will be tailored to your organization's needs.
+
+---
+
+## 🔄 Roadmap
+
+### Version 2.1 (Q4 2025)
+- [ ] GUI dashboard for report visualization
+- [ ] Multi-target batch scanning
+- [ ] API endpoint for programmatic access
+- [ ] Cloud-native deployment (Docker/Kubernetes)
+
+### Version 3.0 (Q1 2026)  
+- [ ] Machine learning for false positive reduction
+- [ ] Automated exploit validation
+- [ ] Integration with popular pentesting frameworks
+- [ ] Mobile app for on-the-go reconnaissance
+
+---
+
+---
+
+## 📞 Support & Community
+
+### Community Support (Open Source License)
+
+- **GitHub Issues** - Bug reports and feature requests
+- **Discussions** - Q&A and best practices
+- **Wiki** - Documentation and tutorials
+
+### Commercial Support (Paid License)
+
+- **Email** - paulwfholder@gmail.com (24-48 hour response)
+- **Slack Channel** - Direct access to development team
+- **Video Calls** - Screen-sharing troubleshooting
 
 ---
 
 ## 🤝 Contributing
 
-This is a demonstration project, but suggestions for improvements are welcome:
+Open source contributions welcome! See Issues tab for ways to help.
 
-- Additional security tools to integrate
-- Enhanced reporting formats
-- Multi-language support (Java, JavaScript, Go)
+**Areas to contribute:**
+- Bug reports and fixes
+- Feature suggestions
+- Documentation improvements
+- Security testing and feedback
+
+---
+
+## 📄 Legal
+
+### Disclaimer
+
+ReconBot is a security tool intended for authorized testing only. The author assumes no liability for misuse. Users are solely responsible for ensuring legal compliance in their jurisdiction.
+
+### Data Privacy
+
+ReconBot processes security data locally. No reconnaissance data is transmitted to external servers unless explicitly configured by the user (e.g., webhook integrations).
+
+### Export Control
+
+This software may be subject to export control regulations. Users are responsible for compliance with applicable laws.
 
 ---
 
 ## 📞 Contact
 
 **Paul Holder, CC**  
-Application Security Engineer  
-[LinkedIn](https://linkedin.com/in/paulwfholder) | [GitHub](https://github.com/paulwfholder)
+Application Security Engineer | Tool Developer
 
----
+- 📧 Email: paulwfholder@gmail.com
+- 💼 LinkedIn: [linkedin.com/in/paulwfholder](https://linkedin.com/in/paulwfholder)
+- 🐙 GitHub: [github.com/paulwfholder](https://github.com/paulwfholder)  
+- 🌐 Portfolio: [paulwfholder.github.io](https://paulwfholder.github.io)
 
-## 📚 Additional Resources
-
-- [OWASP DevSecOps Guideline](https://owasp.org/www-project-devsecops-guideline/)
-- [GitHub Actions Security Hardening](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions)
-- [NIST Secure Software Development Framework](https://csrc.nist.gov/projects/ssdf)
-- [CIS Software Supply Chain Security Guide](https://www.cisecurity.org/insights/white-papers/cis-software-supply-chain-security-guide)
+**Commercial Inquiries:** Include "ReconBot Commercial License" in subject line
 
 ---
 
 **Last Updated:** October 2025  
-**License:** MIT  
-**Status:** Active Development / Portfolio Demonstration
+**Version:** 2.0  
+**Status:** Production Ready
+
+---
+
+*ReconBot - Automating Security Reconnaissance Since 2024*
